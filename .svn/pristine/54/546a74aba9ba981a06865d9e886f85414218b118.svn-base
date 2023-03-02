@@ -1,0 +1,16 @@
+=== InstaPunchout ===
+Stable tag: 1.0.0
+Tags: punchout,cxml,oci
+Requires at least: 5
+Tested up to: 5.9.1
+Requires PHP: 5.7
+License: GPLv2
+
+Adds punchout integration to woocommerce
+
+== Description ==
+Connects woocommerce store to procurement systems such as Ariba, Coupa, Jagear using punchout.
+Requires a paid service on https://instapunchout.com
+
+== Installation ==
+Activate the plugin and sign up for an account at https://instapunchout.com
