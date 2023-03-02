@@ -8,9 +8,8 @@
 Plugin Name: InstaPunchout
 Description: This is the punchout plugin which is created by InstaPunchout.
 Author: InstaPunchout
-Version: 1.0.34
-
- */
+Version: 1.0.35
+*/
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
@@ -95,7 +94,7 @@ function instapunchout_post_json($url, $body = null)
 function instapunchout_get_products($vars)
 {
     $vars['type'] = array_merge(array_keys(wc_get_product_types()));
-    $args    = apply_filters('woocommerce_product_object_query_args', $vars);
+    $args = apply_filters('woocommerce_product_object_query_args', $vars);
     $results = WC_Data_Store::load('product')->query($args);
     return apply_filters('woocommerce_product_object_query', $results, $args);
 }
@@ -443,10 +442,12 @@ function instapunchout_create_order($data)
 {
     $email = $data['customer_email'];
     $user = instapunchout_prepare_user($data['customer']);
-    $admin = get_users(array(
-        'role__in' => 'administrator',
-        'fields'   => 'ID',
-    ))[0];
+    $admin = get_users(
+        array(
+            'role__in' => 'administrator',
+            'fields' => 'ID',
+        )
+    )[0];
 
     if ($user instanceof WP_User) {
         wp_clear_auth_cookie();
@@ -458,7 +459,7 @@ function instapunchout_create_order($data)
         exit();
     }
 
-    $request   = new WP_REST_Request('POST', '/wc/v3/orders');
+    $request = new WP_REST_Request('POST', '/wc/v3/orders');
     $request->set_header('content-type', 'application/json');
     $request->set_body(json_encode($data));
     $response = rest_do_request($request);
@@ -467,14 +468,30 @@ function instapunchout_create_order($data)
     echo json_encode($order);
 }
 
-function instapunchout_get_refunds()
+function instapunchout_get_refunds($timestamp)
 {
-    $request = new WP_REST_Request('GET', '/wc/v3/refunds');
-    $request->set_header('content-type', 'application/json');
-    $response = rest_do_request($request);
-    $server = rest_get_server();
-    $refunds = $server->response_to_data($response, false);
-    echo json_encode($refunds);
+    $args = array(
+        'type' => 'shop_order_refund',
+        'date_created' => '>' . $timestamp,
+    );
+    $refunds = wc_get_orders($args);
+    $data = [];
+    foreach ($refunds as $refund) {
+        $order = $refund->get_data();
+        $parentOrder = wc_get_order($order['parent_id']);
+        $parent = $parentOrder->get_data();
+        $parent['line_items'] = [];
+        foreach ($parentOrder->get_items() as $item) {
+            $parent['line_items'][] = $item->get_data();
+        }
+        $order['parent'] = $parent;
+        $order['line_items'] = [];
+        foreach ($refund->get_items() as $item) {
+            $order['line_items'][] = $item->get_data();
+        }
+        $data[] = $order;
+    }
+    echo wp_json_encode(['refunds' => $data]);
 }
 
 add_filter('woocommerce_set_cookie_options', 'instapunchout_woocommerce_set_cookie_options_filter', 10, 3);
