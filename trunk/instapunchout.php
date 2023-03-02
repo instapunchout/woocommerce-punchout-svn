@@ -116,6 +116,7 @@ class InstaPunchout_Punchout
 
         $cart_path = "/punchout/api/cart";
         $order_path_json = "/punchout/api/order.json";
+        $refunds_path_json = "/punchout/api/refunds.json";
         $cart_path_json = "/punchout/api/cart.json";
         $products_path_json = "/punchout/api/products.json";
         $options_path_json = "/punchout/api/options.json";
@@ -180,6 +181,23 @@ class InstaPunchout_Punchout
             } catch (Exception $e) {
                 echo var_dump($e);
             }
+        } else if (substr($url, $index, strlen($refunds_path_json)) === $refunds_path_json) {
+            try {
+                header('Content-Type: application/json');
+                $authorization_header = getallheaders()["Authorization"];
+                if (isset($_GET["authorization_header"])) {
+                    $authorization_header = $_GET["authorization_header"];
+                }
+                $res = instapunchout_post_json('https://punchout.cloud/authorize', ["authorization" => $authorization_header]);
+                if ($res["authorized"] == true) {
+                    instapunchout_get_refunds($_GET["after"]);
+                } else {
+                    echo json_encode(["error" => "You're not authorized", "error_data" => $res, "header" => $authorization_header]);
+                }
+            } catch (Exception $e) {
+                echo var_dump($e);
+            }
+            exit;
         } else if (substr($url, $index, strlen($order_path_json)) === $order_path_json) {
 
             try {
@@ -195,7 +213,7 @@ class InstaPunchout_Punchout
                     echo json_encode(["error" => "You're not authorized", "error_data" => $res, "header" => $authorization_header]);
                 }
             } catch (Exception $e) {
-                echo var_dump(e);
+                echo var_dump($e);
             }
             exit;
         } else if (substr($url, $index, strlen($cart_path_json)) === $cart_path_json) {
@@ -449,6 +467,15 @@ function instapunchout_create_order($data)
     echo json_encode($order);
 }
 
+function instapunchout_get_refunds()
+{
+    $request = new WP_REST_Request('GET', '/wc/v3/refunds');
+    $request->set_header('content-type', 'application/json');
+    $response = rest_do_request($request);
+    $server = rest_get_server();
+    $refunds = $server->response_to_data($response, false);
+    echo json_encode($refunds);
+}
 
 add_filter('woocommerce_set_cookie_options', 'instapunchout_woocommerce_set_cookie_options_filter', 10, 3);
 function instapunchout_woocommerce_set_cookie_options_filter($cookie_options, $name, $value)
