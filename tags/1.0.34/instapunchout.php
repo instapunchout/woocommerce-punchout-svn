@@ -482,6 +482,6 @@ function instapunchout_wp_set_auth_cookie($user_id)
 
 function instapunchout_setcookie($name, $value)
 {
-    $date = date("D, d M Y H:i:s", time() + 3600 * 48) . 'GMT';
+    $date = date("D, d M Y H:i:s", time() + 3600 * 6) . 'GMT';
     header("Set-Cookie: {$name}={$value}; EXPIRES{$date};SameSite=None;Secure;HttpOnly");
 }
